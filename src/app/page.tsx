@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { authApi, projectsApi, tasksApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -36,12 +36,50 @@ import {
   ListTodo
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ViewHeader } from '@/components/ViewHeader';
+
+type Project = {
+  id: string;
+  name: string;
+  description?: string | null;
+  color?: string | null;
+  tasks?: Task[];
+};
+
+type Task = {
+  id: string;
+  title: string;
+  description?: string | null;
+  dueDate?: string | null;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH';
+  completed: boolean;
+  projectId?: string | null;
+  project?: Project | null;
+};
+
+const viewMeta: Record<'dashboard' | 'projects' | 'tasks', { title: string; description: string; eyebrow: string }> = {
+  dashboard: {
+    eyebrow: 'Inbox',
+    title: 'Today & Inbox',
+    description: 'Quick stats and the most recent tasks across all projects.',
+  },
+  projects: {
+    eyebrow: 'Projects',
+    title: 'Work by project',
+    description: 'Favorites, colors, and quick task previews per project.',
+  },
+  tasks: {
+    eyebrow: 'Upcoming',
+    title: 'All tasks',
+    description: 'Scan and manage every task across projects.',
+  },
+};
 
 export default function Home() {
   const { user, token, setAuth, logout } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeView, setActiveView] = useState<'dashboard' | 'projects' | 'tasks'>('dashboard');
 
@@ -198,12 +236,34 @@ export default function Home() {
     }
   };
 
-  const getTaskStats = () => {
-    const total = tasks.length;
-    const completed = tasks.filter(t => t.completed).length;
+  const formatDueDate = (value?: string | null) => {
+    if (!value) return 'No due date';
+    const date = new Date(value);
+    return date.toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getTaskStats = (taskList: Task[]) => {
+    const total = taskList.length;
+    const completed = taskList.filter(t => t.completed).length;
     const pending = total - completed;
     return { total, completed, pending };
   };
+
+  const sortedTasks = useMemo(() => {
+    return [...tasks].sort((a, b) => {
+      if (!a.dueDate && !b.dueDate) return 0;
+      if (!a.dueDate) return 1;
+      if (!b.dueDate) return -1;
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    });
+  }, [tasks]);
+
+  const stats = useMemo(() => getTaskStats(tasks), [tasks]);
 
   if (!user) {
     return (
@@ -309,8 +369,6 @@ export default function Home() {
       </div>
     );
   }
-
-  const stats = getTaskStats();
 
   const MobileNavigation = () => (
     <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
@@ -428,6 +486,13 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <ViewHeader
+          eyebrow={viewMeta[activeView].eyebrow}
+          title={viewMeta[activeView].title}
+          description={viewMeta[activeView].description}
+          stats={stats}
+        />
+
         {activeView === 'dashboard' && (
           <>
             {/* Stats Cards */}
@@ -563,7 +628,7 @@ export default function Home() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2 max-h-96 overflow-y-auto">
-                      {tasks.length === 0 ? (
+                      {sortedTasks.length === 0 ? (
                         <div className="text-center py-12">
                           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                             <CheckSquare className="w-8 h-8 text-gray-400" />
@@ -572,12 +637,13 @@ export default function Home() {
                           <p className="text-sm text-gray-400">Create your first task to get started</p>
                         </div>
                       ) : (
-                        tasks.slice(0, 5).map((task) => (
+                        sortedTasks.slice(0, 5).map((task) => (
                           <div key={task.id} className="group flex items-start gap-3 p-3 md:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                             <Checkbox
                               checked={task.completed}
                               onCheckedChange={() => toggleTaskComplete(task.id, task.completed)}
                               className="mt-1"
+                              aria-label={task.completed ? 'Mark task as incomplete' : 'Mark task as complete'}
                             />
                             <div className="flex-1 min-w-0">
                               <p className={`font-medium text-gray-900 text-sm md:text-base ${task.completed ? 'line-through opacity-60' : ''}`}>
@@ -595,12 +661,10 @@ export default function Home() {
                                     {task.project.name}
                                   </Badge>
                                 )}
-                                {task.dueDate && (
-                                  <div className="flex items-center text-xs text-gray-500">
-                                    <Calendar className="w-3 h-3 mr-1" />
-                                    {new Date(task.dueDate).toLocaleDateString()}
-                                  </div>
-                                )}
+                                <div className="flex items-center text-xs text-gray-500">
+                                  <Calendar className="w-3 h-3 mr-1" />
+                                  {formatDueDate(task.dueDate)}
+                                </div>
                               </div>
                             </div>
                             <Button 
@@ -608,6 +672,7 @@ export default function Home() {
                               variant="ghost" 
                               size="sm"
                               className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              aria-label={`Delete task ${task.title}`}
                             >
                               <Trash2 className="w-4 h-4 text-red-500" />
                             </Button>
@@ -702,6 +767,7 @@ export default function Home() {
                               variant="ghost" 
                               size="sm"
                               className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                              aria-label={`Delete project ${project.name}`}
                             >
                               <Trash2 className="w-4 h-4 text-red-500" />
                             </Button>
@@ -801,7 +867,7 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {tasks.length === 0 ? (
+                {sortedTasks.length === 0 ? (
                   <div className="text-center py-12">
                     <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <CheckSquare className="w-8 h-8 text-gray-400" />
@@ -810,12 +876,13 @@ export default function Home() {
                     <p className="text-sm text-gray-400">Create your first task to get started</p>
                   </div>
                 ) : (
-                  tasks.map((task) => (
+                  sortedTasks.map((task) => (
                     <div key={task.id} className="group flex items-start gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                       <Checkbox
                         checked={task.completed}
                         onCheckedChange={() => toggleTaskComplete(task.id, task.completed)}
                         className="mt-1"
+                        aria-label={task.completed ? 'Mark task as incomplete' : 'Mark task as complete'}
                       />
                       <div className="flex-1 min-w-0">
                         <p className={`font-medium text-gray-900 ${task.completed ? 'line-through opacity-60' : ''}`}>
@@ -833,12 +900,10 @@ export default function Home() {
                               {task.project.name}
                             </Badge>
                           )}
-                          {task.dueDate && (
-                            <div className="flex items-center text-xs text-gray-500">
-                              <Calendar className="w-3 h-3 mr-1" />
-                              {new Date(task.dueDate).toLocaleDateString()}
-                            </div>
-                          )}
+                          <div className="flex items-center text-xs text-gray-500">
+                            <Calendar className="w-3 h-3 mr-1" />
+                            {formatDueDate(task.dueDate)}
+                          </div>
                         </div>
                       </div>
                       <Button 
@@ -846,6 +911,7 @@ export default function Home() {
                         variant="ghost" 
                         size="sm"
                         className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        aria-label={`Delete task ${task.title}`}
                       >
                         <Trash2 className="w-4 h-4 text-red-500" />
                       </Button>
@@ -931,6 +997,7 @@ export default function Home() {
                       variant="ghost" 
                       size="sm"
                       className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label={`Delete project ${project.name}`}
                     >
                       <Trash2 className="w-4 h-4 text-red-500" />
                     </Button>
@@ -950,6 +1017,7 @@ export default function Home() {
                             checked={task.completed}
                             onCheckedChange={() => toggleTaskComplete(task.id, task.completed)}
                             className="h-4 w-4"
+                            aria-label={task.completed ? 'Mark task as incomplete' : 'Mark task as complete'}
                           />
                           <span className={cn(
                             "truncate",
