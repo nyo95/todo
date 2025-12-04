@@ -49,6 +49,8 @@ type TaskDetailSheetProps = {
   onDeleteSubtask: (id: string) => void;
 };
 
+const NO_PROJECT_VALUE = '__no_project__';
+
 export function TaskDetailSheet({
   task,
   projects,
@@ -65,7 +67,7 @@ export function TaskDetailSheet({
     description: '',
     dueDate: '',
     priority: 'MEDIUM' as Priority,
-    projectId: '',
+    projectId: undefined as string | undefined,
   });
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
@@ -79,7 +81,7 @@ export function TaskDetailSheet({
           ? format(new Date(task.dueDate), "yyyy-MM-dd'T'HH:mm")
           : '',
         priority: task.priority,
-        projectId: task.projectId || '',
+        projectId: task.projectId || undefined,
       });
     } else {
       setFormData({
@@ -87,7 +89,7 @@ export function TaskDetailSheet({
         description: '',
         dueDate: '',
         priority: 'MEDIUM',
-        projectId: '',
+        projectId: undefined,
       });
     }
     setIsAddingSubtask(false);
@@ -104,8 +106,8 @@ export function TaskDetailSheet({
     if (formData.dueDate !== (task.dueDate || ''))
       updates.dueDate = formData.dueDate || null;
     if (formData.priority !== task.priority) updates.priority = formData.priority;
-    if (formData.projectId !== (task.projectId || ''))
-      updates.projectId = formData.projectId || null;
+    if ((formData.projectId ?? null) !== (task.projectId ?? null))
+      updates.projectId = formData.projectId ?? null;
 
     if (Object.keys(updates).length > 0) {
       onSave(task.id, updates);
@@ -179,16 +181,19 @@ export function TaskDetailSheet({
               Project
             </Label>
             <Select
-              value={formData.projectId}
+              value={formData.projectId ?? NO_PROJECT_VALUE}
               onValueChange={(value) =>
-                setFormData({ ...formData, projectId: value })
+                setFormData({
+                  ...formData,
+                  projectId: value === NO_PROJECT_VALUE ? undefined : value,
+                })
               }
             >
               <SelectTrigger>
                 <SelectValue placeholder="No project" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No project</SelectItem>
+                <SelectItem value={NO_PROJECT_VALUE}>No project</SelectItem>
                 {projects.map((project) => (
                   <SelectItem key={project.id} value={project.id}>
                     <div className="flex items-center gap-2">
