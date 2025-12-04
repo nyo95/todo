@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getTokenFromRequest, verifyToken } from '@/lib/auth';
-import { createProjectSchema } from '@/lib/validations';
+import { createReminderSchema } from '@/lib/validations';
 
 async function getCurrentUser(request: NextRequest) {
   const token = getTokenFromRequest(request);
@@ -24,39 +24,34 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const isArchived = searchParams.get('isArchived');
-    const isFavorite = searchParams.get('isFavorite');
+    const taskId = searchParams.get('taskId');
 
-    const where: any = { userId };
-    
-    if (isArchived !== null) {
-      where.isArchived = isArchived === 'true';
+    let whereClause: any = {
+      task: {
+        userId
+      }
+    };
+
+    if (taskId) {
+      whereClause.taskId = taskId;
     }
 
-    if (isFavorite === 'true') {
-      where.isFavorite = true;
-    }
-
-    const projects = await db.project.findMany({
-      where,
+    const reminders = await db.reminder.findMany({
+      where: whereClause,
       include: {
-        tasks: {
+        task: {
           select: {
             id: true,
-            completed: true,
-            isArchived: true
+            title: true
           }
         }
       },
-      orderBy: [
-        { isFavorite: 'desc' },
-        { createdAt: 'desc' }
-      ]
+      orderBy: { dateTime: 'asc' }
     });
 
-    return NextResponse.json(projects);
+    return NextResponse.json(reminders);
   } catch (error) {
-    console.error('Get projects error:', error);
+    console.error('Get reminders error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -75,30 +70,42 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, color, isFavorite } = createProjectSchema.parse(body);
+    const { dateTime, type, taskId } = createReminderSchema.parse(body);
 
-    const project = await db.project.create({
-      data: {
-        name,
-        description,
-        color: color || '#000000',
-        isFavorite: isFavorite || false,
+    // Verify task belongs to user
+    const task = await db.task.findFirst({
+      where: {
+        id: taskId,
         userId
       }
     });
 
-    // Log activity
-    await db.activity.create({
+    if (!task) {
+      return NextResponse.json(
+        { error: 'Task not found' },
+        { status: 404 }
+      );
+    }
+
+    const reminder = await db.reminder.create({
       data: {
-        action: 'PROJECT_CREATED',
-        projectId: project.id,
-        userId
+        dateTime: new Date(dateTime),
+        type: type || 'NOTIFICATION',
+        taskId
+      },
+      include: {
+        task: {
+          select: {
+            id: true,
+            title: true
+          }
+        }
       }
     });
 
-    return NextResponse.json(project);
+    return NextResponse.json(reminder);
   } catch (error) {
-    console.error('Create project error:', error);
+    console.error('Create reminder error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

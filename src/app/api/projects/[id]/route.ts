@@ -32,7 +32,25 @@ export async function GET(
         userId
       },
       include: {
-        tasks: true
+        tasks: {
+          include: {
+            taskLabels: {
+              include: {
+                label: true
+              }
+            },
+            comments: {
+              select: {
+                id: true
+              }
+            },
+            attachments: {
+              select: {
+                id: true
+              }
+            }
+          }
+        }
       }
     });
 
@@ -67,7 +85,19 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, description, color } = updateProjectSchema.parse(body);
+    const { name, description, color, isFavorite, isArchived } = updateProjectSchema.parse(body);
+
+    // Get original project for activity logging
+    const originalProject = await db.project.findFirst({
+      where: { id: params.id, userId }
+    });
+
+    if (!originalProject) {
+      return NextResponse.json(
+        { error: 'Project not found' },
+        { status: 404 }
+      );
+    }
 
     const project = await db.project.updateMany({
       where: {
@@ -77,7 +107,9 @@ export async function PUT(
       data: {
         name,
         description,
-        color
+        color,
+        isFavorite,
+        isArchived
       }
     });
 
@@ -91,6 +123,25 @@ export async function PUT(
     const updatedProject = await db.project.findUnique({
       where: { id: params.id }
     });
+
+    // Log activity
+    if (isArchived !== undefined && isArchived !== originalProject.isArchived) {
+      await db.activity.create({
+        data: {
+          action: isArchived ? 'PROJECT_ARCHIVED' : 'PROJECT_UNARCHIVED',
+          projectId: params.id,
+          userId
+        }
+      });
+    } else {
+      await db.activity.create({
+        data: {
+          action: 'PROJECT_UPDATED',
+          projectId: params.id,
+          userId
+        }
+      });
+    }
 
     return NextResponse.json(updatedProject);
   } catch (error) {
@@ -115,19 +166,35 @@ export async function DELETE(
       );
     }
 
-    const project = await db.project.deleteMany({
+    const project = await db.project.findFirst({
       where: {
         id: params.id,
         userId
       }
     });
 
-    if (project.count === 0) {
+    if (!project) {
       return NextResponse.json(
         { error: 'Project not found' },
         { status: 404 }
       );
     }
+
+    await db.project.deleteMany({
+      where: {
+        id: params.id,
+        userId
+      }
+    });
+
+    // Log activity
+    await db.activity.create({
+      data: {
+        action: 'PROJECT_DELETED',
+        projectId: params.id,
+        userId
+      }
+    });
 
     return NextResponse.json({ message: 'Project deleted successfully' });
   } catch (error) {

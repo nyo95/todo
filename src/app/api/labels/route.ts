@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getTokenFromRequest, verifyToken } from '@/lib/auth';
-import { createProjectSchema } from '@/lib/validations';
+import { createLabelSchema } from '@/lib/validations';
 
 async function getCurrentUser(request: NextRequest) {
   const token = getTokenFromRequest(request);
@@ -23,40 +23,26 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { searchParams } = new URL(request.url);
-    const isArchived = searchParams.get('isArchived');
-    const isFavorite = searchParams.get('isFavorite');
-
-    const where: any = { userId };
-    
-    if (isArchived !== null) {
-      where.isArchived = isArchived === 'true';
-    }
-
-    if (isFavorite === 'true') {
-      where.isFavorite = true;
-    }
-
-    const projects = await db.project.findMany({
-      where,
+    const labels = await db.label.findMany({
+      where: { userId },
       include: {
-        tasks: {
-          select: {
-            id: true,
-            completed: true,
-            isArchived: true
+        taskLabels: {
+          include: {
+            task: {
+              select: {
+                id: true,
+                completed: true
+              }
+            }
           }
         }
       },
-      orderBy: [
-        { isFavorite: 'desc' },
-        { createdAt: 'desc' }
-      ]
+      orderBy: { createdAt: 'desc' }
     });
 
-    return NextResponse.json(projects);
+    return NextResponse.json(labels);
   } catch (error) {
-    console.error('Get projects error:', error);
+    console.error('Get labels error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -75,30 +61,34 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, color, isFavorite } = createProjectSchema.parse(body);
+    const { name, color } = createLabelSchema.parse(body);
 
-    const project = await db.project.create({
+    // Check if label already exists for this user
+    const existingLabel = await db.label.findFirst({
+      where: {
+        name,
+        userId
+      }
+    });
+
+    if (existingLabel) {
+      return NextResponse.json(
+        { error: 'Label already exists' },
+        { status: 400 }
+      );
+    }
+
+    const label = await db.label.create({
       data: {
         name,
-        description,
-        color: color || '#000000',
-        isFavorite: isFavorite || false,
+        color: color || '#6B7280',
         userId
       }
     });
 
-    // Log activity
-    await db.activity.create({
-      data: {
-        action: 'PROJECT_CREATED',
-        projectId: project.id,
-        userId
-      }
-    });
-
-    return NextResponse.json(project);
+    return NextResponse.json(label);
   } catch (error) {
-    console.error('Create project error:', error);
+    console.error('Create label error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

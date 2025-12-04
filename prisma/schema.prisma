@@ -14,15 +14,19 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String
+  name        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   
-  projects  Project[]
-  tasks     Task[]
+  projects    Project[]
+  tasks       Task[]
+  labels      Label[]
+  comments    Comment[]
+  activities  Activity[]
+  savedViews  SavedView[]
 }
 
 model Project {
@@ -30,6 +34,8 @@ model Project {
   name        String
   description String?
   color       String?  @default("#3B82F6")
+  isFavorite  Boolean  @default(false)
+  isArchived  Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
@@ -40,24 +46,161 @@ model Project {
 }
 
 model Task {
-  id          String    @id @default(cuid())
-  title       String
-  description String?
-  dueDate     DateTime?
-  priority    Priority  @default(MEDIUM)
-  completed   Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id            String      @id @default(cuid())
+  title         String
+  description   String?
+  dueDate       DateTime?
+  priority      Priority    @default(MEDIUM)
+  completed     Boolean     @default(false)
+  isArchived    Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
   
-  projectId   String?
-  project     Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  // Recurring task fields
+  isRecurring   Boolean     @default(false)
+  recurringType RecurringType?
+  recurringValue Int?
   
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId     String?
+  project       Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Relations
+  reminders     Reminder[]
+  taskLabels    TaskLabel[]
+  comments      Comment[]
+  activities    Activity[]
+  attachments   Attachment[]
 }
 
 enum Priority {
   LOW
   MEDIUM
   HIGH
+}
+
+enum RecurringType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+// Labels/Tags
+model Label {
+  id        String   @id @default(cuid())
+  name      String
+  color     String   @default("#6B7280")
+  createdAt DateTime @default(now())
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  taskLabels TaskLabel[]
+}
+
+model TaskLabel {
+  id     String @id @default(cuid())
+  taskId String
+  labelId String
+  
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label  Label  @relation(fields: [labelId], references: [id], onDelete: Cascade)
+  
+  @@unique([taskId, labelId])
+}
+
+// Reminders
+model Reminder {
+  id        String           @id @default(cuid())
+  dateTime  DateTime
+  type      ReminderType     @default(NOTIFICATION)
+  isSent    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  
+  taskId    String
+  task      Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+enum ReminderType {
+  NOTIFICATION
+  EMAIL
+}
+
+// Comments
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Attachments
+model Attachment {
+  id           String   @id @default(cuid())
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  path         String
+  createdAt    DateTime @default(now())
+  
+  taskId       String
+  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+// Activity Log
+model Activity {
+  id        String       @id @default(cuid())
+  action    ActivityType
+  details   String?
+  createdAt DateTime     @default(now())
+  
+  taskId    String?
+  task      Task?        @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  
+  projectId String?
+  
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum ActivityType {
+  TASK_CREATED
+  TASK_UPDATED
+  TASK_COMPLETED
+  TASK_UNCOMPLETED
+  TASK_DELETED
+  TASK_ARCHIVED
+  TASK_UNARCHIVED
+  PROJECT_CREATED
+  PROJECT_UPDATED
+  PROJECT_DELETED
+  PROJECT_ARCHIVED
+  PROJECT_UNARCHIVED
+  COMMENT_ADDED
+  ATTACHMENT_ADDED
+  LABEL_ADDED
+  LABEL_REMOVED
+}
+
+// Saved Views
+model SavedView {
+  id          String   @id @default(cuid())
+  name        String
+  filters     String   // JSON string of filter criteria
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
