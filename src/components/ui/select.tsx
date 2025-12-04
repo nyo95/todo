@@ -6,10 +6,33 @@ import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
+type SelectRootProps = React.ComponentProps<typeof SelectPrimitive.Root>
+
 function Select({
+  value,
+  defaultValue,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Root>) {
-  return <SelectPrimitive.Root data-slot="select" {...props} />
+}: SelectRootProps) {
+  const safeValue = value === "" ? undefined : value
+  const safeDefaultValue = defaultValue === "" ? undefined : defaultValue
+
+  if (process.env.NODE_ENV !== "production") {
+    if (value === "") {
+      console.warn("<Select> received an empty string value. Use undefined for no selection.")
+    }
+    if (defaultValue === "") {
+      console.warn("<Select> received an empty string defaultValue. Use undefined for no selection.")
+    }
+  }
+
+  return (
+    <SelectPrimitive.Root
+      data-slot="select"
+      value={safeValue}
+      defaultValue={safeDefaultValue}
+      {...props}
+    />
+  )
 }
 
 function SelectGroup({
@@ -98,14 +121,30 @@ function SelectLabel({
   )
 }
 
-function SelectItem({
+type NonEmptyValue<T extends string> = T extends "" ? never : T
+
+type SelectItemProps<T extends string = string> = Omit<
+  React.ComponentProps<typeof SelectPrimitive.Item>,
+  "value"
+> & {
+  value: NonEmptyValue<T>
+}
+
+function SelectItem<T extends string>({
   className,
   children,
+  value,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Item>) {
+}: SelectItemProps<T>) {
+  if (process.env.NODE_ENV !== "production" && value === "") {
+    console.warn("<SelectItem> value cannot be an empty string. Use a placeholder or undefined select value instead.")
+    return null
+  }
+
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
+      value={value}
       className={cn(
         "focus:bg-accent focus:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
         className

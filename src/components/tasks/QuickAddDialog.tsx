@@ -25,13 +25,15 @@ export type TaskFormData = {
   projectId?: string;
 };
 
+const NO_PROJECT_VALUE = '__no_project__';
+
 export function QuickAddDialog({ open, onOpenChange, onSubmit, projects }: QuickAddDialogProps) {
   const [formData, setFormData] = useState<TaskFormData>({
     title: '',
     description: '',
     dueDate: '',
     priority: 'MEDIUM',
-    projectId: '',
+    projectId: undefined,
   });
 
   useEffect(() => {
@@ -41,7 +43,7 @@ export function QuickAddDialog({ open, onOpenChange, onSubmit, projects }: Quick
         description: '',
         dueDate: '',
         priority: 'MEDIUM',
-        projectId: '',
+        projectId: undefined,
       });
     }
   }, [open]);
@@ -138,14 +140,19 @@ export function QuickAddDialog({ open, onOpenChange, onSubmit, projects }: Quick
           <div>
             <Label htmlFor="project">Project</Label>
             <Select
-              value={formData.projectId}
-              onValueChange={(value) => setFormData({ ...formData, projectId: value })}
+              value={formData.projectId ?? NO_PROJECT_VALUE}
+              onValueChange={(value) =>
+                setFormData({
+                  ...formData,
+                  projectId: value === NO_PROJECT_VALUE ? undefined : value,
+                })
+              }
             >
               <SelectTrigger className="mt-1.5">
                 <SelectValue placeholder="Inbox (no project)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Inbox (no project)</SelectItem>
+                <SelectItem value={NO_PROJECT_VALUE}>Inbox (no project)</SelectItem>
                 {projects.map((project) => (
                   <SelectItem key={project.id} value={project.id}>
                     <div className="flex items-center gap-2">

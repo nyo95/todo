@@ -75,6 +75,8 @@ const viewMeta: Record<'dashboard' | 'projects' | 'tasks', { title: string; desc
   },
 };
 
+const NO_PROJECT_VALUE = '__no_project__';
+
 export default function Home() {
   const { user, token, setAuth, logout } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
@@ -97,7 +99,7 @@ export default function Home() {
     description: '', 
     dueDate: '', 
     priority: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH',
-    projectId: ''
+    projectId: undefined as string | undefined
   });
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
 
@@ -195,7 +197,7 @@ export default function Home() {
         description: '', 
         dueDate: '', 
         priority: 'MEDIUM',
-        projectId: ''
+        projectId: undefined
       });
       setIsTaskDialogOpen(false);
       toast.success('Task created successfully!');
@@ -583,15 +585,23 @@ export default function Home() {
                           </div>
                           <div>
                             <Label htmlFor="task-project">Project</Label>
-                            <Select value={taskForm.projectId} onValueChange={(value) => setTaskForm({ ...taskForm, projectId: value })}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a project" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="">No project</SelectItem>
-                                {projects.map((project) => (
-                                  <SelectItem key={project.id} value={project.id}>
-                                    {project.name}
+                      <Select
+                        value={taskForm.projectId ?? NO_PROJECT_VALUE}
+                        onValueChange={(value) =>
+                          setTaskForm({
+                            ...taskForm,
+                            projectId: value === NO_PROJECT_VALUE ? undefined : value,
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a project" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={NO_PROJECT_VALUE}>No project</SelectItem>
+                          {projects.map((project) => (
+                            <SelectItem key={project.id} value={project.id}>
+                              {project.name}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -822,12 +832,20 @@ export default function Home() {
                     </div>
                     <div>
                       <Label htmlFor="task-project">Project</Label>
-                      <Select value={taskForm.projectId} onValueChange={(value) => setTaskForm({ ...taskForm, projectId: value })}>
+                      <Select
+                        value={taskForm.projectId ?? NO_PROJECT_VALUE}
+                        onValueChange={(value) =>
+                          setTaskForm({
+                            ...taskForm,
+                            projectId: value === NO_PROJECT_VALUE ? undefined : value,
+                          })
+                        }
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select a project" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">No project</SelectItem>
+                          <SelectItem value={NO_PROJECT_VALUE}>No project</SelectItem>
                           {projects.map((project) => (
                             <SelectItem key={project.id} value={project.id}>
                               {project.name}
