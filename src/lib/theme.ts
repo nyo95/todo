@@ -23,19 +23,19 @@ export const priorityColors = {
 } as const;
 
 export const appColors = {
-  primary: 'hsl(0, 0%, 0%)',
-  primaryHover: 'hsl(0, 0%, 20%)',
-  secondary: 'hsl(0, 0%, 96%)',
-  accent: 'hsl(0, 0%, 90%)',
-  muted: 'hsl(0, 0%, 40%)',
-  border: 'hsl(0, 0%, 90%)',
+  primary: 'hsl(224, 71%, 4%)',
+  primaryHover: 'hsl(224, 71%, 8%)',
+  secondary: 'hsl(210, 20%, 98%)',
+  accent: 'hsl(210, 14%, 92%)',
+  muted: 'hsl(215, 16%, 45%)',
+  border: 'hsl(214, 32%, 91%)',
 } as const;
 
 export const spacing = {
-  taskItem: 'p-3',
-  cardPadding: 'p-6',
+  taskItem: 'p-4',
+  cardPadding: 'p-6 sm:p-7',
   sectionGap: 'space-y-6',
-  itemGap: 'space-y-2',
+  itemGap: 'space-y-3',
 } as const;
 
 export const transitions = {
@@ -45,10 +45,16 @@ export const transitions = {
 } as const;
 
 export const typography = {
-  h1: 'text-2xl font-bold',
-  h2: 'text-xl font-semibold',
+  h1: 'text-3xl font-semibold tracking-tight',
+  h2: 'text-2xl font-semibold tracking-tight',
   h3: 'text-lg font-semibold',
-  body: 'text-sm',
-  small: 'text-xs',
-  muted: 'text-sm text-gray-500',
+  body: 'text-base',
+  small: 'text-xs uppercase tracking-[0.08em] text-slate-500',
+  muted: 'text-sm text-slate-500',
+} as const;
+
+export const radii = {
+  card: 'rounded-xl',
+  sheet: 'rounded-2xl',
+  pill: 'rounded-full',
 } as const;

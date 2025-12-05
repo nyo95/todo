@@ -25,21 +25,26 @@ export function TaskList({
 }: TaskListProps) {
   if (tasks.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <CheckSquare className="w-8 h-8 text-gray-400" />
+      <div className="text-center py-10 px-6 border border-dashed border-slate-200 rounded-xl bg-white/40">
+        <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3">
+          <CheckSquare className="w-7 h-7 text-slate-300" />
         </div>
-        <p className="text-gray-500 text-sm">{emptyMessage}</p>
+        <p className="text-slate-600 text-sm font-medium">{emptyMessage}</p>
+        <p className="text-xs text-slate-500 mt-1">Capture a thought with Quick Add to get started.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {title && (
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-1 mb-3">
-          {title} ({tasks.length})
-        </h3>
+        <div className="flex items-center gap-2 px-1">
+          <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+            {title}
+          </h3>
+          <span className="text-[11px] text-slate-500 font-medium">{tasks.length}</span>
+          <div className="h-px flex-1 bg-slate-200" />
+        </div>
       )}
 
       {tasks.map((task) => (

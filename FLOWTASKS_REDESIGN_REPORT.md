@@ -11,6 +11,14 @@ FlowTasks has been comprehensively redesigned and refactored to achieve **Todois
 - **Improved code maintainability** with reusable components and custom hooks
 - **Preserved functionality** including RBAC, Activity Log, subtasks, and all views
 
+## Latest UX Refinements
+
+- **Task consumption is calmer and clearer:** Task rows now use softer cards, simplified metadata chips, and priority dots so Today/Inbox feel closer to Todoist while keeping project/attachment indicators. (Updated `src/components/tasks/TaskItem.tsx`, `TaskList.tsx`)
+- **Capture-first Quick Add:** The dialog now defaults to title-only capture with optional details tucked behind a toggle, minimizing friction for Inbox/Today entry while keeping full metadata when needed. (Updated `src/components/tasks/QuickAddDialog.tsx`)
+- **Today as the primary home:** A refreshed hero card shows today’s date and quick stats, with task groups living inside elevated, calm containers. (Updated `src/components/views/TodayView.tsx`)
+- **Premium detail sheet:** Task detail surfaces now open with a summary header for due date, priority, and project, plus cushioned sections for content and scheduling, matching the monochrome studio aesthetic. (Updated `src/components/tasks/TaskDetailSheet.tsx`)
+- **Design tokens tightened:** Typography scale, spacing, and corner radii have been tuned for a softer, more architectural feel to support the calmer layout choices. (Updated `src/lib/theme.ts`)
+
 ## Table of Contents
 
 1. [Architecture Overview](#architecture-overview)
