@@ -35,6 +35,7 @@ export function QuickAddDialog({ open, onOpenChange, onSubmit, projects }: Quick
     priority: 'MEDIUM',
     projectId: undefined,
   });
+  const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -45,6 +46,7 @@ export function QuickAddDialog({ open, onOpenChange, onSubmit, projects }: Quick
         priority: 'MEDIUM',
         projectId: undefined,
       });
+      setShowDetails(false);
     }
   }, [open]);
 
@@ -71,118 +73,132 @@ export function QuickAddDialog({ open, onOpenChange, onSubmit, projects }: Quick
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[520px] sm:rounded-2xl">
         <DialogHeader>
-          <DialogTitle>Quick Add Task</DialogTitle>
+          <DialogTitle className="text-lg font-semibold tracking-tight">Quick Add</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="space-y-4">
-          <div>
-            <Label htmlFor="title">Task name</Label>
+          <div className="space-y-1">
+            <Label htmlFor="title" className="text-sm text-slate-600">Task name</Label>
             <Input
               id="title"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="What needs to be done?"
+              placeholder="Capture a task..."
               autoFocus
-              className="mt-1.5"
+              className="mt-1.5 h-12 text-[15px]"
             />
+            <p className="text-xs text-slate-500">Only the title is required—everything else is optional.</p>
           </div>
 
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Add any details..."
-              rows={3}
-              className="mt-1.5 resize-none"
-            />
-          </div>
+          {showDetails && (
+            <div className="space-y-4 rounded-xl border border-slate-200/80 bg-slate-50/60 p-4">
+              <div className="space-y-2">
+                <Label htmlFor="description" className="text-xs text-slate-600">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Add context, links, or acceptance criteria"
+                  rows={3}
+                  className="resize-none"
+                />
+              </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="dueDate" className="flex items-center gap-2">
-                <Calendar className="w-3.5 h-3.5" />
-                Due date
-              </Label>
-              <Input
-                id="dueDate"
-                type="datetime-local"
-                value={formData.dueDate}
-                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                className="mt-1.5"
-              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="dueDate" className="flex items-center gap-2 text-xs text-slate-600">
+                    <Calendar className="w-3.5 h-3.5" />
+                    Due date
+                  </Label>
+                  <Input
+                    id="dueDate"
+                    type="datetime-local"
+                    value={formData.dueDate}
+                    onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="priority" className="flex items-center gap-2 text-xs text-slate-600">
+                    <Flag className="w-3.5 h-3.5" />
+                    Priority
+                  </Label>
+                  <Select
+                    value={formData.priority}
+                    onValueChange={(value: Priority) => setFormData({ ...formData, priority: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="LOW">Low</SelectItem>
+                      <SelectItem value="MEDIUM">Medium</SelectItem>
+                      <SelectItem value="HIGH">High</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="project" className="text-xs text-slate-600">Project</Label>
+                <Select
+                  value={formData.projectId ?? NO_PROJECT_VALUE}
+                  onValueChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      projectId: value === NO_PROJECT_VALUE ? undefined : value,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Inbox (no project)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_PROJECT_VALUE}>Inbox (no project)</SelectItem>
+                    {projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-2.5 h-2.5 rounded-full"
+                            style={{ backgroundColor: project.color || '#666' }}
+                          />
+                          {project.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+          )}
 
-            <div>
-              <Label htmlFor="priority" className="flex items-center gap-2">
-                <Flag className="w-3.5 h-3.5" />
-                Priority
-              </Label>
-              <Select
-                value={formData.priority}
-                onValueChange={(value: Priority) => setFormData({ ...formData, priority: value })}
-              >
-                <SelectTrigger className="mt-1.5">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="LOW">Low</SelectItem>
-                  <SelectItem value="MEDIUM">Medium</SelectItem>
-                  <SelectItem value="HIGH">High</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="project">Project</Label>
-            <Select
-              value={formData.projectId ?? NO_PROJECT_VALUE}
-              onValueChange={(value) =>
-                setFormData({
-                  ...formData,
-                  projectId: value === NO_PROJECT_VALUE ? undefined : value,
-                })
-              }
-            >
-              <SelectTrigger className="mt-1.5">
-                <SelectValue placeholder="Inbox (no project)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NO_PROJECT_VALUE}>Inbox (no project)</SelectItem>
-                {projects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-2.5 h-2.5 rounded-full"
-                        style={{ backgroundColor: project.color || '#666' }}
-                      />
-                      {project.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4">
-            <Button
+          <div className="flex items-center justify-between pt-2">
+            <button
               type="button"
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
+              className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
+              onClick={() => setShowDetails((prev) => !prev)}
             >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={!formData.title.trim()}
-              className="bg-black hover:bg-gray-800"
-            >
-              Add Task
-            </Button>
+              {showDetails ? 'Hide optional details' : 'Add optional details'}
+            </button>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={!formData.title.trim()}
+                className="bg-black hover:bg-gray-800"
+              >
+                Add Task
+              </Button>
+            </div>
           </div>
         </form>
 

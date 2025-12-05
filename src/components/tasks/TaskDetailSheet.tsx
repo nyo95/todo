@@ -96,6 +96,17 @@ export function TaskDetailSheet({
     setNewSubtaskTitle('');
   }, [task]);
 
+  const formattedDueDate = formData.dueDate
+    ? format(new Date(formData.dueDate), 'MMM d, yyyy • h:mm a')
+    : task?.dueDate
+      ? format(new Date(task.dueDate), 'MMM d, yyyy')
+      : null;
+
+  const activeProject =
+    projects.find((project) => project.id === formData.projectId) || task?.project || null;
+
+  const priorityTone = priorityColors[formData.priority];
+
   const handleSave = () => {
     if (!task) return;
 
@@ -143,122 +154,156 @@ export function TaskDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+      <SheetContent className="w-full sm:max-w-xl overflow-y-auto sm:rounded-2xl">
         <SheetHeader>
-          <SheetTitle>Task Details</SheetTitle>
+          <SheetTitle className="text-lg font-semibold tracking-tight">Task Details</SheetTitle>
         </SheetHeader>
 
-        <div className="space-y-6 py-6">
-          {/* Title */}
-          <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="Task title"
-            />
+        <div className="space-y-5 py-6">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.1em] text-slate-500">Currently editing</p>
+                <p className="text-lg font-semibold text-slate-900 leading-tight mt-1">
+                  {formData.title || task.title}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2 justify-end">
+                <Badge
+                  variant="secondary"
+                  className={cn('text-xs h-7 bg-white text-slate-700 border border-slate-200', priorityTone.border)}
+                >
+                  <Flag className="w-3.5 h-3.5" />
+                  {formData.priority}
+                </Badge>
+                {formattedDueDate && (
+                  <Badge variant="outline" className="text-xs h-7 bg-white text-slate-700 border-slate-200">
+                    <Calendar className="w-3.5 h-3.5" />
+                    {formattedDueDate}
+                  </Badge>
+                )}
+                {activeProject && (
+                  <Badge variant="outline" className="text-xs h-7 bg-white text-slate-700 border-slate-200">
+                    <div
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: activeProject.color || '#666' }}
+                    />
+                    {activeProject.name}
+                  </Badge>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-              placeholder="Add a description..."
-              rows={4}
-            />
+          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Task title"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+                placeholder="Add a description..."
+                rows={4}
+              />
+            </div>
           </div>
 
-          {/* Project */}
-          <div className="space-y-2">
-            <Label>
-              <FolderOpen className="w-4 h-4 inline mr-2" />
-              Project
-            </Label>
-            <Select
-              value={formData.projectId ?? NO_PROJECT_VALUE}
-              onValueChange={(value) =>
-                setFormData({
-                  ...formData,
-                  projectId: value === NO_PROJECT_VALUE ? undefined : value,
-                })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="No project" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NO_PROJECT_VALUE}>No project</SelectItem>
-                {projects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
+          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 grid grid-cols-1 gap-4">
+            <div className="space-y-2">
+              <Label>
+                <FolderOpen className="w-4 h-4 inline mr-2" />
+                Project
+              </Label>
+              <Select
+                value={formData.projectId ?? NO_PROJECT_VALUE}
+                onValueChange={(value) =>
+                  setFormData({
+                    ...formData,
+                    projectId: value === NO_PROJECT_VALUE ? undefined : value,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="No project" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_PROJECT_VALUE}>No project</SelectItem>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: project.color || '#666' }}
+                        />
+                        {project.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dueDate">
+                <Calendar className="w-4 h-4 inline mr-2" />
+                Due Date
+              </Label>
+              <Input
+                id="dueDate"
+                type="datetime-local"
+                value={formData.dueDate}
+                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>
+                <Flag className="w-4 h-4 inline mr-2" />
+                Priority
+              </Label>
+              <Select
+                value={formData.priority}
+                onValueChange={(value: Priority) =>
+                  setFormData({ ...formData, priority: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="LOW">
                     <div className="flex items-center gap-2">
-                      <div
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: project.color || '#666' }}
-                      />
-                      {project.name}
+                      <div className={cn('w-2 h-2 rounded-full', priorityColors.LOW.dot)} />
+                      Low
                     </div>
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Due Date */}
-          <div className="space-y-2">
-            <Label htmlFor="dueDate">
-              <Calendar className="w-4 h-4 inline mr-2" />
-              Due Date
-            </Label>
-            <Input
-              id="dueDate"
-              type="datetime-local"
-              value={formData.dueDate}
-              onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-            />
-          </div>
-
-          {/* Priority */}
-          <div className="space-y-2">
-            <Label>
-              <Flag className="w-4 h-4 inline mr-2" />
-              Priority
-            </Label>
-            <Select
-              value={formData.priority}
-              onValueChange={(value: Priority) =>
-                setFormData({ ...formData, priority: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="LOW">
-                  <div className="flex items-center gap-2">
-                    <div className={cn('w-2 h-2 rounded-full', priorityColors.LOW.dot)} />
-                    Low
-                  </div>
-                </SelectItem>
-                <SelectItem value="MEDIUM">
-                  <div className="flex items-center gap-2">
-                    <div className={cn('w-2 h-2 rounded-full', priorityColors.MEDIUM.dot)} />
-                    Medium
-                  </div>
-                </SelectItem>
-                <SelectItem value="HIGH">
-                  <div className="flex items-center gap-2">
-                    <div className={cn('w-2 h-2 rounded-full', priorityColors.HIGH.dot)} />
-                    High
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+                  <SelectItem value="MEDIUM">
+                    <div className="flex items-center gap-2">
+                      <div className={cn('w-2 h-2 rounded-full', priorityColors.MEDIUM.dot)} />
+                      Medium
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="HIGH">
+                    <div className="flex items-center gap-2">
+                      <div className={cn('w-2 h-2 rounded-full', priorityColors.HIGH.dot)} />
+                      High
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <Separator />
